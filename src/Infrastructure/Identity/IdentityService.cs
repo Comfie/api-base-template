@@ -5,6 +5,7 @@ using ApiBaseTemplate.Application.Common.Interfaces;
 using ApiBaseTemplate.Application.Common.Models;
 using ApiBaseTemplate.Application.Common.Models.Settings;
 using ApiBaseTemplate.Domain.Entities.Auth;
+using ApiBaseTemplate.Domain.Repositories;
 using ApiBaseTemplate.Domain.Shared;
 using ApiBaseTemplate.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -30,6 +31,7 @@ public class IdentityService : IIdentityService
     private readonly ApplicationDbContext _context;
     private readonly AppSettings _appSettings;
     private readonly IEmailService _emailService;
+    private readonly IUnitOfWork _unitOfWork;
 
     public IdentityService(
         UserManager<ApplicationUser> userManager,
@@ -40,7 +42,7 @@ public class IdentityService : IIdentityService
         IJwtService jwtService, IDateTimeService dateTime,
         ApplicationDbContext context,
         IOptions<AppSettings> appSettings,
-        IEmailService emailService)
+        IEmailService emailService, IUnitOfWork unitOfWork)
     {
         _userManager = userManager;
         _userClaimsPrincipalFactory = userClaimsPrincipalFactory;
@@ -52,6 +54,7 @@ public class IdentityService : IIdentityService
         _context = context;
         _appSettings = appSettings.Value;
         _emailService = emailService;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<string?> GetUserNameAsync(string userId, CancellationToken cancellationToken = default)
@@ -435,7 +438,7 @@ public class IdentityService : IIdentityService
             var verifiedOtp = hotp.VerifyHotp(otp, oneTimePin.Counter);
             oneTimePin.Counter += 1;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return Result.Success(verifiedOtp);
         }
